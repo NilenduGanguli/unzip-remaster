@@ -1,0 +1,39 @@
+#!/bin/bash
+set -x
+set -e
+
+pwd
+ls -l scripts/
+ls -l app/
+
+echo "Initializing Unzip Service Environment..."
+
+
+# 1. Set General Environment Variables
+source ./scripts/set_env.sh
+
+# 2. Set Secrets (Passwords, Keys)
+source ./scripts/set_secrets.sh
+
+# 3. Configure Certificates
+source ./scripts/set_certs.sh
+
+# 4. Start Server (Production: Uvicorn Direct for asyncio compatibility)
+echo "Starting Uvicorn directly (asyncio loop)..."
+# Ensure PYTHONPATH includes the current directory
+export PYTHONPATH=$PYTHONPATH:$(pwd)
+
+# NOTE: We use uvicorn directly instead of Gunicorn+UvicornWorker because 
+# python-oracledb Thin mode requires the 'asyncio' loop, and configuring the 
+# worker loop in Gunicorn is less reliable via env vars.
+exec uvicorn app.main:app \
+    --host 0.0.0.0 \
+    --port ${SERVER_PORT:-8080} \
+    --workers ${WORKERS:-2} \
+    --loop asyncio \
+    --log-level ${GUNICORN_LOG_LEVEL:-info}
+
+
+EXIT_CODE=$?
+echo "Uvicorn exited with code $EXIT_CODE"
+exit $EXIT_CODE

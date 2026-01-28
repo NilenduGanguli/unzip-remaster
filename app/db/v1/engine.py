@@ -1,23 +1,18 @@
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import DeclarativeBase
-import oracledb
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase
+import cx_Oracle
 from app.core.v1.config import DatabaseSettings
 from app.core.v1.logging import get_logger
 
 _module_logger = "DATABASE"
 logger = get_logger(_module_logger)
 
-async def oracle_thick_client():
-    try:
-        oracledb.init_oracle_client()
-        await logger.ainfo("Oracle Client initialized in Thick Mode.")
-    except Exception as e:
-        await logger.awarning(f"Failed to initialize Oracle Client (Thick Mode): {e}. Proceeding, but connection functionality might be limited.")
-
 settings = DatabaseSettings()
 
+# cx_Oracle depends on Oracle Client libraries being present.
+
 # Performance tuning: pool size
-engine = create_async_engine(
+engine = create_engine(
     settings.DATABASE_URL,
     echo=False,
     pool_size=settings.DB_POOL_SIZE,
@@ -25,9 +20,9 @@ engine = create_async_engine(
     pool_recycle=settings.DB_POOL_RECYCLE,
 )
 
-AsyncSessionLocal = async_sessionmaker(
+SessionLocal = sessionmaker(
     bind=engine,
-    class_=AsyncSession,
+    class_=Session,
     expire_on_commit=False,
     autoflush=False
 )
@@ -35,6 +30,9 @@ AsyncSessionLocal = async_sessionmaker(
 class Base(DeclarativeBase):
     pass
 
-async def get_db():
-    async with AsyncSessionLocal() as session:
+def get_db():
+    session = SessionLocal()
+    try:
         yield session
+    finally:
+        session.close()

@@ -4,8 +4,9 @@ import os
 from app.core.v1.config import AppSettings
 from app.core.v1.logging import setup_logging,get_logger
 from app.db.v1.engine import Base, engine,oracle_thick_client
-from app.api.v1.synchronous import application as synchronous_app
-from app.api.v1.parallel import application as parallel_app
+from app.api.v1.synchronous import router as synchronous_router
+from app.api.v1.parallel import router as parallel_router
+from app.api.v1.asynchronous import router as asynchronous_router
 from app.documentum.v1.client import close_documentum_client
 
 _module_logger = "SERVER"
@@ -44,8 +45,9 @@ app = FastAPI(title=settings.app_name,lifespan=lifespan)
 
 
 # Register routes
-app.include_router(synchronous_app.router, prefix="/api/v1")
-app.include_router(parallel_app.router, prefix="/api/v1")
+app.include_router(synchronous_router, prefix="/api/v1")
+app.include_router(parallel_router, prefix="/api/v1")
+app.include_router(asynchronous_router, prefix="/api/v2")
 
 @app.get("/health")
 async def health():

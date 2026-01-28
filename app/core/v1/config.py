@@ -18,12 +18,14 @@ class DatabaseSettings(BaseSettings):
     # Constructed URL
     @property
     def DATABASE_URL(self) -> str:
-        return f"oracle+oracledb://{self.DB_USERNAME}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/?service_name={self.DB_SERVICE}"
+        # Use cx_oracle driver
+        return f"oracle+cx_oracle://{self.DB_USERNAME}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/?service_name={self.DB_SERVICE}"
     
     # DB Pool Config
     DB_POOL_SIZE: int = int(os.getenv("DB_POOL_SIZE", "10"))
     DB_MAX_OVERFLOW: int = int(os.getenv("DB_MAX_OVERFLOW", "10"))
     DB_POOL_RECYCLE: int = int(os.getenv("DB_POOL_RECYCLE", "3600"))
+    DB_THICK_MODE: bool = os.getenv("DB_THICK_MODE", "false").lower() == "true"
 
 class DocumentumSettings(BaseSettings):
     # Documentum API Endpoints
@@ -62,6 +64,7 @@ class AppSettings(BaseSettings):
     
     # Process Pool Config
     UNZIP_MAX_WORKERS: int = int(os.getenv("UNZIP_MAX_WORKERS", "1"))
+    UNZIP_ENABLE_CACHE: bool = os.getenv("UNZIP_ENABLE_CACHE", "false").lower() == "true"
 
     # Helper Services
     FILE_HANDLER_SERVICE_URL: str = os.getenv("FILE_HANDLER_SERVICE_URL", "http://document-handler:8080/upload/pvc/files")

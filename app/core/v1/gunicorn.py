@@ -9,7 +9,7 @@ class AsyncioUvicornWorker(UvicornWorker):
 
 bind = f"0.0.0.0:{os.getenv('SERVER_PORT', '8080')}"
 workers = int(os.getenv("WORKERS", "2"))
-worker_class = "uvicorn.workers.UvicornWorker"
+worker_class = "app.core.v1.gunicorn.AsyncioUvicornWorker"
 
 # Load settings to get concurrency options
 # Note: We can't import app settings easily here without side effects, 
@@ -17,7 +17,8 @@ worker_class = "uvicorn.workers.UvicornWorker"
 
 # Timeout: Processing large zips might take time.
 timeout = int(os.getenv("GUNICORN_TIMEOUT", "120"))
-keepalive = int(os.getenv("GUNICORN_KEEPALIVE", "5"))
+# Optimized: Increased keepalive for frequent connection reuse
+keepalive = int(os.getenv("GUNICORN_KEEPALIVE", "60"))
 
 # Logging
 loglevel = os.getenv("GUNICORN_LOG_LEVEL", "info")

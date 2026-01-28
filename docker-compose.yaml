@@ -14,6 +14,7 @@ services:
       - DB_SERVICE=FREEPDB1
       - DB_USERNAME=unzip_user
       - DB_PASSWORD=YourStrong!Passw0rd
+      - DB_THICK_MODE=false
       - DOCUMENTUM_UPLOAD_URL=http://documentum:8000/upload
       - DOCUMENTUM_FETCH_URL=http://documentum:8000/fetch
       - PVC_DIR=/app/unzip-pvc-data
