@@ -55,10 +55,13 @@ class UploadManager:
                         client_id=client_id,
                         document_link_id=doc_id,
                         document_name=node.name,
-                        document_type="zip" if node.is_archive else "file",
-                        parent_document_link_id=parent_doc_id,
+                        file_type="zip" if node.is_archive else "file",
+                        parent_doc_link_id=parent_doc_id,
                         document_path=str(file_path),
-                        status=True
+                        file_size=node.size,
+                        is_extracted="Y",
+                        ver_num=settings.VER_NUM
+                        # status field removed, success implied by absence of error in reserved_field1
                     )
                     db_records.append(db_entry)
                     
@@ -71,6 +74,20 @@ class UploadManager:
                 except Exception as e:
                     await logger.aerror(f"Failed to upload {node.name}: {e}")
                     node.error = f"Upload failed: {e}"
+                    
+                    # Log Error to DB
+                    db_entry = KycDocumentUnzip(
+                        client_id=client_id,
+                        document_name=node.name,
+                        document_link_id="ERROR", 
+                        file_type="zip" if node.is_archive else "file",
+                        parent_doc_link_id=parent_doc_id,
+                        document_path=str(file_path),
+                        reserved_field1=str(e)[:4000],
+                        is_extracted="N",
+                        ver_num=settings.VER_NUM
+                    )
+                    db_records.append(db_entry)
             else:
                  await logger.awarning(f"File not found at {file_path}")
 
@@ -121,10 +138,12 @@ class UploadManager:
                         client_id=client_id,
                         document_link_id=doc_id,
                         document_name=node.name,
-                        document_type="zip" if node.is_archive else "file",
-                        parent_document_link_id=parent_doc_id,
-                        document_path=str(file_path), # We store the PVC path
-                        status=True
+                        file_type="zip" if node.is_archive else "file",
+                        parent_doc_link_id=parent_doc_id,
+                        document_path=str(file_path),
+                        file_size=node.size,
+                        is_extracted="Y",
+                        ver_num=settings.VER_NUM
                     )
                     self.db.add(db_entry)
                     # Note: We are not committing here, transaction is managed by caller usually, but kept serial behavior pattern
@@ -144,6 +163,20 @@ class UploadManager:
                 except Exception as e:
                     await logger.aerror(f"Failed to upload {node.name}: {e}")
                     node.error = f"Upload failed: {e}"
+                    
+                    # Log Error to DB
+                    db_entry = KycDocumentUnzip(
+                        client_id=client_id,
+                        document_name=node.name,
+                        document_link_id="ERROR",
+                        file_type="zip" if node.is_archive else "file",
+                        parent_doc_link_id=parent_doc_id,
+                        document_path=str(file_path),
+                        reserved_field1=str(e)[:4000],
+                        is_extracted="N",
+                        ver_num=settings.VER_NUM
+                    )
+                    self.db.add(db_entry)
             else:
                 await logger.awarning(f"File not found at {file_path}")
                 

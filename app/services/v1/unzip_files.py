@@ -187,10 +187,12 @@ class UnzipWorkflowService:
                         client_id=client_id,
                         document_link_id=doc_id,
                         document_name=node.name,
-                        document_type="file",
-                        parent_document_link_id="UNKNOWN_DIRECT_UPLOAD", 
+                        file_type="file",
+                        parent_doc_link_id="UNKNOWN_DIRECT_UPLOAD", 
                         document_path=node.temp_path,
-                        status=True
+                        file_size=int(float(f_size)) if f_size else 0,
+                        is_extracted="Y",
+                        ver_num=settings.VER_NUM
                     )
                     self.db.add(db_entry)
                     
@@ -333,10 +335,11 @@ class UnzipWorkflowService:
             client_id=client_id,
             document_link_id=document_link_id,
             document_name=filename,
-            document_type="zip",
-            parent_document_link_id=None,
+            file_type="zip",
+            parent_doc_link_id=None,
             document_path="DOCUMENTUM_FETCHED",
-            status=True
+            is_extracted="Y",
+            ver_num=settings.VER_NUM
         )
         self.db.add(parent_record)
         self.db.commit()
@@ -457,10 +460,12 @@ class UnzipWorkflowService:
                         client_id=client_id,
                         document_link_id=doc_id,
                         document_name=node.name,
-                        document_type="file",
-                        parent_document_link_id=document_link_id,
+                        file_type="file",
+                        parent_doc_link_id=document_link_id,
                         document_path=node.temp_path,
-                        status=True
+                        file_size=int(float(f_size)) if f_size else 0,
+                        is_extracted="Y",
+                        ver_num=settings.VER_NUM
                     )
                     self.db.add(db_entry)
                     files_unzipped_map[node.path] = UnzippedFileDetail(

@@ -1,0 +1,152 @@
+# Service Connectivity Guide
+
+This guide details how to connect to the `oracle-server` and `documentum` services within the Docker network (`unzip-network`) and provides specifications for their endpoints and schemas. This is intended for AI coding agents and developers integrating with these services.
+
+## Network Context
+- **Network Name**: `unzip-network`
+- All services are reachable by their container names within this network.
+
+---
+
+## 1. Oracle Database Service
+
+**Service Name**: `oracle-server`
+
+### Connection Details
+- **Host**: `oracle-server`
+- **Port**: `1521`
+- **Service Name (SID/Service)**: `FREEPDB1` (Pluggable Database)
+- **Username**: `unzip_user`
+- **Password**: `YourStrong!Passw0rd`
+- **Protocol**: TCP
+
+### Connection Strings
+
+**JDBC (Java)**:
+```text
+jdbc:oracle:thin:@//oracle-server:1521/FREEPDB1
+```
+
+**SQLAlchemy (Python)**:
+```python
+oracle+oracledb://unzip_user:YourStrong!Passw0rd@oracle-server:1521/?service_name=FREEPDB1
+```
+
+**Python (oracledb native)**:
+```python
+dsn="oracle-server:1521/FREEPDB1"
+```
+
+### Database Schema (Table: `KYC_DOCUMENT_UNZIP`)
+The table is owned by `unzip_user`.
+
+| Column Name             | Data Type         | Constraints | Description |
+|-------------------------|-------------------|-------------|-------------|
+| `KYC_UNZIP_ID`          | `NVARCHAR2(36)`   | PRIMARY KEY | Unique ID for the record (UUID recommended) |
+| `CLIENT_ID`             | `NVARCHAR2(255)`  |             | Client identifier |
+| `DOCUMENT_LINK_ID`      | `NVARCHAR2(255)`  | NOT NULL    | Link ID returned by documentum service |
+| `DOCUMENT_NAME`         | `NVARCHAR2(255)`  |             | Name of the document |
+| `DOCUMENT_TYPE`         | `NVARCHAR2(100)`  |             | Type classification of the document |
+| `PARENT_DOCUMENT_LINK_ID`| `NVARCHAR2(255)` |             | Parent ID if nested |
+| `LST_UPD_TIME`          | `TIMESTAMP`       | DEFAULT NOW | Timestamp of last update |
+| `LST_UPD_DT`            | `DATE`            | DEFAULT NOW | Date of last update |
+| `DOCUMENT_PATH`         | `NVARCHAR2(2000)` |             | File path or URI |
+| `STATUS`                | `NUMBER(1)`       |             | boolean flag (0/1) for status |
+| `ERROR`                 | `NVARCHAR2(2000)` |             | Error message if any |
+
+---
+
+## 2. Documentum Service (FastAPI App)
+
+**Service Name**: `documentum`
+
+### Connection Details
+- **Host**: `documentum`
+- **Port**: `8000`
+- **Base URL**: `http://documentum:8000`
+
+### Endpoints
+
+#### A. Health Check
+*   **Method**: `GET`
+*   **Path**: `/health`
+*   **Description**: Checks if the service is running.
+*   **Response**:
+    ```json
+    {
+      "status": "ok"
+    }
+    ```
+
+#### B. Upload Document
+*   **Method**: `POST`
+*   **Path**: `/upload`
+*   **Description**: Uploads a base64 encoded file.
+*   **Request Body** (`application/json`):
+    ```json
+    {
+      "content": "<base64_encoded_string>",
+      "filename": "example.zip"  // [Optional]
+    }
+    ```
+*   **Response** (`200 OK`):
+    ```json
+    {
+      "document_link_id": "000000000a"
+    }
+    ```
+    *   `document_link_id`: A 10-character alphanumeric ID used to retrieve the file.
+
+#### C. Fetch Document
+*   **Method**: `POST`
+*   **Path**: `/fetch`
+*   **Description**: Retrieves a document by its ID.
+*   **Request Body** (`application/json`):
+    ```json
+    {
+      "document_link_id": "000000000a"
+    }
+    ```
+*   **Response** (`200 OK`):
+    ```json
+    {
+      "content": "<base64_encoded_string>",
+      "filename": "example.zip"
+    }
+    ```
+*   **Errors**:
+    *   `404 Not Found`: If the `document_link_id` does not exist.
+
+---
+
+## 3. S3 Blob Storage (MinIO)
+
+**Service Name**: `s3-server`
+
+### Connection Details
+- **Endpoint URL**: `http://s3-server:9000`
+- **Console URL**: `http://localhost:9001` (Browser Access)
+- **Access Key (Root User)**: `unzip_user`
+- **Secret Key (Root Password)**: `YourStrong!Passw0rd`
+- **Region**: `us-east-1` (Default for MinIO, though often ignored)
+
+### Buckets
+- **Name**: `unzip-documents`
+- **Access**: Public Read/Write (configured by init script)
+
+### Boto3 Client Setup (Python)
+
+```python
+import boto3
+
+s3_client = boto3.client(
+    's3',
+    endpoint_url='http://s3-server:9000',
+    aws_access_key_id='unzip_user',
+    aws_secret_access_key='YourStrong!Passw0rd',
+    # Config signature_version='s3v4' is recommended for MinIO
+)
+
+# Example Upload
+s3_client.upload_file("local_file.txt", "unzip-documents", "remote_file.txt")
+```

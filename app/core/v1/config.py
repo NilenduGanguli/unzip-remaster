@@ -56,6 +56,9 @@ class AppSettings(DocumentumSettings, BucketSettings):
     debug_mode: bool = os.getenv("DEBUG_MODE", "false").lower() == "true"
     dev_mode: bool = os.getenv("DEV_MODE", "false").lower() == "true"
 
+    # DB Versioning
+    VER_NUM: int = int(os.getenv("VER_NUM", "8"))
+
     # Directory to store temp files (Initial upload)
     TEMP_DIR: str = "/tmp/unzipper_upload"
     
