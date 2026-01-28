@@ -49,7 +49,7 @@ class BucketSettings(BaseSettings):
     S3_ACCESS_KEY: str = os.getenv("S3_ACCESS_KEY", "")
     S3_SECRET_KEY: str = os.getenv("S3_SECRET_KEY", "")
 
-class AppSettings(BaseSettings):
+class AppSettings(DocumentumSettings, BucketSettings):
     app_name: str = os.getenv("APP_NAME", "Unzip Service")
     app_version: str = os.getenv("APP_VERSION", "1.0.0")
     app_region: str = os.getenv("APP_REGION", "nam")
