@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 import os
 from app.core.v1.config import AppSettings
 from app.core.v1.logging import setup_logging,get_logger
-from app.db.v1.engine import Base, engine,oracle_thick_client
+from app.db.v1.engine import Base, engine
 from app.api.v1.synchronous import router as synchronous_router
 from app.api.v1.parallel import router as parallel_router
 from app.api.v1.asynchronous import router as asynchronous_router
@@ -19,12 +19,15 @@ settings = AppSettings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    await logger.ainfo("Starting Unzip Service (ProcessPool Version)")
-    await oracle_thick_client()
-    
-    # Initialize DB Tables
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    await logger.ainfo("Starting Unzip Service (ProcessPool Version + cx_Oracle)")
+    # cx_Oracle Client is initialized implicitly or by system lib presence
+
+    # Initialize DB Tables (Sync)
+    try:
+        Base.metadata.create_all(bind=engine)
+        await logger.ainfo("Database tables initialized (Synchronous).")
+    except Exception as e:
+        await logger.aerror(f"Failed to initialize database: {e}")
     
     # Ensure PVC Dir exists
     if not os.path.exists(settings.PVC_DIR):
@@ -38,7 +41,7 @@ async def lifespan(app: FastAPI):
     # Shutdown
     await logger.ainfo("Shutting down...")
     await close_documentum_client()
-    await engine.dispose()
+    engine.dispose()
     # Process Pool shuts down automatically on exit usually, or we can explicitely shut it down if we stored reference globally
 
 app = FastAPI(title=settings.app_name,lifespan=lifespan)

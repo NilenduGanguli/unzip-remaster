@@ -382,7 +382,7 @@ class UnzipWorkflowService:
             # I/O Bound Uploads
             uploaded_map = await self._upload_files_recursive(root_node, client_id)
             
-            await self.db.commit()
+            self.db.commit()
             
             root_key = root_node.path
             root_doc_id = root_node.document_link_id or "UNKNOWN"
@@ -507,7 +507,7 @@ class UnzipWorkflowService:
                          await _map_results(child, current_map)
             
             await _map_results(root_node, files_unzipped_map)
-            await self.db.commit()
+            self.db.commit()
             
             # Since we don't have a parent ID from documentum, use a placeholder or check if one was returned (unlikely for direct upload)
             root_doc_id = "UNKNOWN" 
@@ -729,7 +729,7 @@ class UnzipWorkflowService:
         stmt = select(KycDocumentUnzip).where(
             KycDocumentUnzip.document_link_id == document_link_id
         )
-        result = await self.db.execute(stmt)
+        result = self.db.execute(stmt)
         existing = result.scalars().all()
         
         if settings.UNZIP_ENABLE_CACHE and existing:
@@ -750,7 +750,7 @@ class UnzipWorkflowService:
             # Upload extracted (Child of the original document_link_id)
             uploaded_map = await self._upload_files_recursive(root_node, client_id, document_link_id)
             
-            await self.db.commit()
+            self.db.commit()
             
             root_key = root_node.path
             # For process_document_unzip, the input document_link_id IS the root id.
@@ -811,7 +811,7 @@ class UnzipWorkflowService:
         stmt = select(KycDocumentUnzip).where(
             KycDocumentUnzip.document_link_id == document_link_id
         )
-        result = await self.db.execute(stmt)
+        result = self.db.execute(stmt)
         existing = result.scalars().all()
 
         if settings.UNZIP_ENABLE_CACHE and existing:
@@ -914,7 +914,7 @@ class UnzipWorkflowService:
                          await _map_results(child, current_map)
             
             await _map_results(root_node, files_unzipped_map)
-            await self.db.commit()
+            self.db.commit()
             
             unzip_detail = UnzipDetail(
                 document_link_id=document_link_id,
