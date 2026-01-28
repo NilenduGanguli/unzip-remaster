@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  unzip-app:
+    build: .
+    image: unzip-remaster:latest
+    container_name: unzip-service
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_PORT=8080
+      - DB_HOST=oracle-server
+      - DB_PORT=1521
+      - DB_SERVICE=FREEPDB1
+      - DB_USERNAME=unzip_user
+      - DB_PASSWORD=YourStrong!Passw0rd
+      - DOCUMENTUM_UPLOAD_URL=http://documentum:8000/upload
+      - DOCUMENTUM_FETCH_URL=http://documentum:8000/fetch
+      - PVC_DIR=/app/unzip-pvc-data
+    volumes:
+      - unzip_pvc_data:/app/unzip-pvc-data
+    networks:
+      - unzip-network
+
+networks:
+  unzip-network:
+    external: true
+
+volumes:
+  unzip_pvc_data:
+    name: unzip_shared_pvc
