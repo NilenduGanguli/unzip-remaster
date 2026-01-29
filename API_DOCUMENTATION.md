@@ -270,11 +270,12 @@ Uploads a file to the configured S3 bucket.
 
 *   **Parameters:**
     *   `file` (Form Data): The file to upload.
+    *   `file_path` (Form Data, Optional): Specific path/key to store the file (e.g., `UNZIP/TEST/test.pdf`). If omitted, a random path is generated.
 *   **Returns:**
     ```json
     {
-      "file_path": "uploads/uniqid/uploaded.pdf",
-      "s3_path": "s3://my-bucket/uploads/uniqid/uploaded.pdf"
+      "file_path": "UNZIP/TEST/test.pdf",
+      "s3_path": "s3://my-bucket/UNZIP/TEST/test.pdf"
     }
     ```
 

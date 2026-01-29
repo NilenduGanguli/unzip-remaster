@@ -46,6 +46,7 @@ class DocumentumSettings(BaseSettings):
     USE_CERT: bool = os.getenv("USE_CERT", "false").lower() == "true"
     DOCUMENTUM_CERT_PATH: str = os.getenv("DOCUMENTUM_CERT_PATH", "")
     DOCUMENTUM_KEY_PATH: str = os.getenv("DOCUMENTUM_KEY_PATH", "")
+    DOCUMENTUM_CERT_PASSWORD: str = os.getenv("DOCUMENTUM_CERT_PASSWORD", "")
 
 class BucketSettings(BaseSettings):
     # S3 Bucket Settings
@@ -55,7 +56,7 @@ class BucketSettings(BaseSettings):
     S3_SECRET_KEY: str = os.getenv("S3_SECRET_KEY", "")
     S3_KEY_PREFIX: str = os.getenv("S3_KEY_PREFIX", "UNZIP")
 
-class AppSettings(DocumentumSettings, BucketSettings):
+class AppSettings(DocumentumSettings, BucketSettings, DatabaseSettings):
     app_name: str = os.getenv("APP_NAME", "Unzip Service")
     app_version: str = os.getenv("APP_VERSION", "1.0.0")
     app_region: str = os.getenv("APP_REGION", "nam")

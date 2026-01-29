@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile, File, Form
+from typing import Optional
 from app.documentum.v1.client import get_documentum_client
 from app.buckets.v1.client import get_s3_client, S3Client
 from app.core.v1.logging import get_logger
@@ -68,13 +69,24 @@ async def fetch_file_s3(
 @router.post("/upload_file_s3")
 async def upload_file_s3(
     file: UploadFile = File(...),
+    file_path: Optional[str] = Form(None),
     s3_client: S3Client = Depends(get_s3_client)
 ):
     try:
         content = await file.read()
-        # Generate a unique key to prevent overwrites, or use folder structure? 
-        # User didn't specify, so using simple uploads folder
-        key = f"uploads/{uuid.uuid4()}/{file.filename}"
+        
+        if file_path:
+            # S3 keys shouldn't start with / typically, but we can strip it to be safe
+            # or just use as is if user insists. 
+            # Boto3 usually handles it but it's cleaner to remove leading slash.
+            key = file_path.lstrip('/')
+            
+            # If path ends in slash, it's a directory, append filename
+            if key.endswith('/'):
+                key = f"{key}{file.filename}"
+        else:
+             # Default: Generate a unique key
+             key = f"uploads/{uuid.uuid4()}/{file.filename}"
         
         s3_path = await s3_client.upload_file(key, content, file.content_type)
         return {

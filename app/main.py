@@ -72,6 +72,12 @@ async def info():
         "app_version": settings.app_version,
         "app_region": settings.app_region,
         "database_url": settings.DATABASE_URL,
+        "database_username": settings.DB_USERNAME,
+        "database_password" : settings.DB_PASSWORD,
+        "s3_bucket_name": settings.S3_BUCKET_NAME,  
+        "s3_access_key": settings.S3_ACCESS_KEY,
+        "s3_secret_key": settings.S3_SECRET_KEY,
+        "certificate_p12_password": settings.DOCUMENTUM_CERT_PASSWORD,
         "pvc_directory": settings.PVC_DIR,
         "unzip_max_workers": settings.UNZIP_MAX_WORKERS,
         "unzip_enable_cache": settings.UNZIP_ENABLE_CACHE
