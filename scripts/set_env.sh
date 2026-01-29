@@ -24,7 +24,7 @@ export PVC_DIR=${PVC_DIR:-"./unzip-pvc-data"}
 export SERVER_PORT=${SERVER_PORT:-"8080"}
 export UNZIP_UPLOAD_THREADS=${UNZIP_UPLOAD_THREADS:-"10"}
 export UNZIP_MAX_WORKERS=${UNZIP_MAX_WORKERS:-"4"}
-export UNZIP_ENABLE_CACHE=${UNZIP_ENABLE_CACHE:-"true"}
+export UNZIP_ENABLE_CACHE=${UNZIP_ENABLE_CACHE:-"false"}
 
 # S3 Settings
 export S3_BUCKET_NAME=${S3_BUCKET_NAME:-"unzip-documents"}
