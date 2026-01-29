@@ -8,9 +8,7 @@ from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from typing import Dict
 from app.services.v1.unzip_files import UnzipWorkflowService, get_workflow_service
 from app.models.v1.unzip import UnzipDetail
-from app.documentum.v1.client import get_documentum_client
 from app.core.v1.logging import get_logger
-import base64
 
 logger = get_logger(__name__)
 
@@ -45,22 +43,6 @@ async def unzip_upload_save_doc(
     except Exception as e:
         await logger.aerror(f"Error in unzip_upload_save_doc: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/fetch_file_documentum/{documentLinkId}")
-async def fetch_file_documentum(
-    documentLinkId: str,
-    doc_client = Depends(get_documentum_client)
-):
-    try:
-        filename, content = await doc_client.fetch_document(documentLinkId)
-        encoded = base64.b64encode(content).decode('utf-8')
-        return {
-            "filename": filename,
-            "content": encoded 
-        }
-    except Exception as e:
-         await logger.aerror(f"Error fetching document: {e}")
-         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/health")
 async def health():

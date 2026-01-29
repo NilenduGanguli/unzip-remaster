@@ -161,6 +161,23 @@ class UnzipWorkflowService:
             content = await file.read()
             await out_file.write(content)
 
+        # Upload Root Zip to Documentum
+        root_doc_id = await self.doc_client.upload_document(content, file.filename)
+        
+        # Log Root Zip Record
+        root_record = KycDocumentUnzip(
+            client_id=client_id,
+            document_link_id=root_doc_id,
+            document_name=file.filename,
+            file_type="zip",
+            parent_doc_link_id=None,
+            document_path=str(temp_file_path),
+            file_size=len(content),
+            is_extracted="Y",
+            ver_num=settings.VER_NUM
+        )
+        self.db.add(root_record)
+        
         root_node = None
         try:
             # Unzip locally to PVC
@@ -216,7 +233,7 @@ class UnzipWorkflowService:
                         document_link_id=doc_id,
                         document_name=node.name,
                         file_type="file",
-                        parent_doc_link_id="UNKNOWN_DIRECT_UPLOAD", 
+                        parent_doc_link_id=root_doc_id, 
                         document_path=node.temp_path,
                         file_size=int(float(f_size)) if f_size else 0,
                         is_extracted="Y",
@@ -236,8 +253,6 @@ class UnzipWorkflowService:
             
             await _map_results(root_node)
             self.db.commit()
-            
-            root_doc_id = "UNKNOWN" 
             
             unzip_detail = UnzipDetail(
                 document_link_id=root_doc_id,

@@ -82,5 +82,62 @@ class S3Client:
             await logger.aerror(f"S3 Fetch error: {e}")
             raise
 
+    async def upload_file(self, key: str, file_content: bytes, content_type: str = 'application/octet-stream') -> str:
+        """
+        Uploads raw file content to S3.
+        """
+        loop = asyncio.get_running_loop()
+        try:
+            await loop.run_in_executor(
+                None,
+                lambda: self.s3.put_object(
+                    Bucket=self.bucket_name,
+                    Key=key,
+                    Body=file_content,
+                    ContentType=content_type
+                )
+            )
+            s3_path = f"s3://{self.bucket_name}/{key}"
+            await logger.ainfo(f"Uploaded file to {s3_path}")
+            return s3_path
+        except Exception as e:
+            await logger.aerror(f"S3 File Upload failed: {e}")
+            raise
+
+    async def get_file(self, s3_path: str):
+        """
+        Fetches raw file bytes from S3.
+        Returns (content_bytes, content_type)
+        """
+        loop = asyncio.get_running_loop()
+        
+        # Parse Key
+        key = s3_path
+        if s3_path.startswith("s3://"):
+            parts = s3_path.split("/", 3)
+            if len(parts) > 3:
+                key = parts[3]
+            else:
+                raise ValueError(f"Invalid S3 Path format: {s3_path}")
+
+        try:
+            response = await loop.run_in_executor(
+                None,
+                lambda: self.s3.get_object(Bucket=self.bucket_name, Key=key)
+            )
+            # Read all bytes
+            content = await loop.run_in_executor(None, lambda: response['Body'].read())
+            content_type = response.get('ContentType', 'application/octet-stream')
+            return content, content_type
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'NoSuchKey':
+                await logger.awarning(f"S3 Key not found: {key}")
+                raise FileNotFoundError(f"S3 Key not found: {key}")
+            await logger.aerror(f"S3 Fetch failed: {e}")
+            raise
+        except Exception as e:
+            await logger.aerror(f"S3 Fetch error: {e}")
+            raise
+
 def get_s3_client() -> S3Client:
     return S3Client()

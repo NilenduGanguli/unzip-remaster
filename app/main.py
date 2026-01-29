@@ -11,6 +11,7 @@ from app.db.v1.engine import Base, engine
 from app.api.v1.synchronous import router as synchronous_router
 from app.api.v1.parallel import router as parallel_router
 from app.api.v1.asynchronous import router as asynchronous_router
+from app.api.v1.utils import router as utils_router
 from app.documentum.v1.client import close_documentum_client
 
 _module_logger = "SERVER"
@@ -55,7 +56,7 @@ app = FastAPI(title=settings.app_name,lifespan=lifespan)
 app.include_router(synchronous_router, prefix="/api/v1")
 app.include_router(parallel_router, prefix="/api/v1")
 app.include_router(asynchronous_router, prefix="/api/v2")
-
+app.include_router(utils_router, prefix="/api/utils")
 @app.get("/health")
 async def health():
     return {"status": "healthy", "app_name": settings.app_name, "app_version": settings.app_version}
