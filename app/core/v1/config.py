@@ -48,6 +48,7 @@ class BucketSettings(BaseSettings):
     S3_HOST: str = os.getenv("S3_HOST", "")
     S3_ACCESS_KEY: str = os.getenv("S3_ACCESS_KEY", "")
     S3_SECRET_KEY: str = os.getenv("S3_SECRET_KEY", "")
+    S3_KEY_PREFIX: str = os.getenv("S3_KEY_PREFIX", "UNZIP")
 
 class AppSettings(DocumentumSettings, BucketSettings):
     app_name: str = os.getenv("APP_NAME", "Unzip Service")
@@ -66,7 +67,7 @@ class AppSettings(DocumentumSettings, BucketSettings):
     PVC_DIR: str = os.getenv("PVC_DIR", "./unzip-pvc-data")
     
     # Process Pool Config
-    UNZIP_MAX_WORKERS: int = int(os.getenv("UNZIP_MAX_WORKERS", "1"))
+    UNZIP_MAX_WORKERS: int = int(os.getenv("UNZIP_MAX_WORKERS", "4"))
     UNZIP_ENABLE_CACHE: bool = os.getenv("UNZIP_ENABLE_CACHE", "false").lower() == "true"
 
     # Helper Services

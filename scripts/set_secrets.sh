@@ -4,7 +4,7 @@
 # In production, this might fetch from a vault or read from mounted secret files
 
 export DB_PASSWORD=${DB_PASSWORD:-"YourStrong!Passw0rd"}
-export S3_SECRET_KEY=${S3_SECRET_KEY:-"secret"}
+export S3_SECRET_KEY=${S3_SECRET_KEY:-"YourStrong!Passw0rd"}
 export DOCUMENTUM_KEY_PASSWORD=${DOCUMENTUM_KEY_PASSWORD:-""}
 export DOCUMENTUM_CERT_PASSWORD=${DOCUMENTUM_CERT_PASSWORD:-""}
 

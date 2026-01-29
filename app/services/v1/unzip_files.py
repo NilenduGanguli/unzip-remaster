@@ -21,6 +21,7 @@ from app.models.v1.unzip import (
 )
 from app.services.v1.zip_processor import ZipProcessor
 from app.services.v1.upload_manager import UploadManager
+from app.buckets.v1.client import S3Client
 from app.core.v1.logging import get_logger
 
 logger = get_logger(__name__)
@@ -30,6 +31,7 @@ class UnzipWorkflowService:
     def __init__(self, db: Session, doc_client: DocumentumClient):
         self.db = db
         self.doc_client = doc_client
+        self.s3_client = S3Client()
         self.pvc_dir = Path(settings.PVC_DIR)
         self.temp_dir = Path(settings.TEMP_DIR)
         
@@ -40,41 +42,57 @@ class UnzipWorkflowService:
         self.pvc_dir.mkdir(parents=True, exist_ok=True)
         self.temp_dir.mkdir(parents=True, exist_ok=True)
 
-    async def _build_response_from_cache(self, existing: List[KycDocumentUnzip], document_link_id: str, client_id: str) -> Dict[str, UnzipDetail]:
-        """Reconstruct the UnzipDetail response from DB records."""
-        files_map = {}
-        total_size = 0
-        names = []
-        
-        for record in existing:
-            f_size = "0"
-            if record.document_path and os.path.exists(record.document_path):
-                 try:
-                     f_size = str(os.path.getsize(record.document_path))
-                 except: pass
+    async def _cache_response(self, response: Dict[str, UnzipDetail], root_doc_id: str, client_id: str):
+        """Uploads final response to S3 and updates DB record."""
+        if not settings.UNZIP_ENABLE_CACHE:
+            return
+
+        try:
+            # Convert to dict for JSON serialization
+            json_data = {k: v.dict(by_alias=True) for k, v in response.items()}
             
-            total_size += int(f_size)
-            files_map[record.document_name] = UnzippedFileDetail(
-                file_name=record.document_name,
-                document_link_id=record.document_link_id,
-                file_size=f_size
+            key = f"{settings.S3_KEY_PREFIX}/unzip_responses/{client_id}/{root_doc_id}.json"
+            s3_path = await self.s3_client.upload_json(key, json_data)
+            
+            # Update DB with S3 path - Update ALL matching records for this client/doc_id to ensure consistency
+            stmt = select(KycDocumentUnzip).where(
+                KycDocumentUnzip.document_link_id == root_doc_id,
+                KycDocumentUnzip.client_id == client_id
             )
-            names.append(record.document_name)
+            result = self.db.execute(stmt)
+            records = result.scalars().all()
+            
+            if records:
+                for record in records:
+                    record.document_s3_path = s3_path
+                self.db.commit()
+            else:
+                await logger.awarning(f"Root record {root_doc_id} for client {client_id} not found for S3 path update")
+                
+        except Exception as e:
+            await logger.aerror(f"Failed to cache response to S3: {e}")
 
-        # Approximate tree (Flat)
-        tree_struct = {document_link_id: {name: {} for name in names}}
+    async def _build_response_from_cache(self, existing: List[KycDocumentUnzip], document_link_id: str, client_id: str) -> Optional[Dict[str, UnzipDetail]]:
+        """
+        Try to reconstruct the UnzipDetail response from S3 Cache.
+        Returns None if cache is invalid or missing, prompting re-processing.
+        """
+        # 1. Try S3 Cache
+        root_record = next((r for r in existing if r.document_link_id == document_link_id), None)
+        if root_record and root_record.document_s3_path:
+            try:
+                data = await self.s3_client.get_json(root_record.document_s3_path)
+                if data:
+                    parsed_response = {}
+                    for k, v in data.items():
+                        parsed_response[k] = UnzipDetail(**v)
+                    await logger.ainfo(f"Returned S3 cached result for {document_link_id}")
+                    return parsed_response
+            except Exception as e:
+                await logger.aerror(f"S3 Cache miss/error: {e}")
 
-        unzip_detail = UnzipDetail(
-            document_link_id=document_link_id,
-            client_id=client_id,
-            file_name="CACHED_RESULT",
-            zipped_size="0",
-            unzipped_size=str(total_size),
-            tree_struct=tree_struct,
-            files_unzipped=files_map
-        )
-        await logger.ainfo(f"Returning cached result for {document_link_id}")
-        return {document_link_id: unzip_detail}
+        # 2. If S3 failed or no path, return None to trigger original flow
+        return None
 
     async def process_direct_upload(self, file: UploadFile, client_id: str) -> Dict[str, UnzipDetail]:
         """
@@ -116,7 +134,9 @@ class UnzipWorkflowService:
                 files_unzipped=contents_map
             )
             
-            return {root_doc_id: unzip_detail}
+            response = {root_doc_id: unzip_detail}
+            await self._cache_response(response, root_doc_id, client_id)
+            return response
             
         finally:
             if temp_file_path.exists():
@@ -221,7 +241,9 @@ class UnzipWorkflowService:
                 files_unzipped=files_unzipped_map
             )
             
-            return {root_doc_id: unzip_detail}
+            response = {root_doc_id: unzip_detail}
+            await self._cache_response(response, root_doc_id, client_id)
+            return response
             
         finally:
             if temp_file_path.exists():
@@ -267,7 +289,9 @@ class UnzipWorkflowService:
                 files_unzipped=contents_map
             )
             
-            return {root_doc_id: unzip_detail}
+            response = {root_doc_id: unzip_detail}
+            await self._cache_response(response, root_doc_id, client_id)
+            return response
 
         finally:
              if temp_file_path.exists():
@@ -278,13 +302,32 @@ class UnzipWorkflowService:
     async def process_document_unzip(self, document_link_id: str, client_id: str) -> Dict[str, UnzipDetail]:
         """Entry point for existing document."""
         # Check cache
-        stmt = select(KycDocumentUnzip).where(KycDocumentUnzip.document_link_id == document_link_id)
+        stmt = select(KycDocumentUnzip).where(
+            KycDocumentUnzip.document_link_id == document_link_id,
+            KycDocumentUnzip.client_id == client_id
+        ).order_by(KycDocumentUnzip.create_dt.desc())
         existing = self.db.execute(stmt).scalars().all()
         if settings.UNZIP_ENABLE_CACHE and existing:
-            return await self._build_response_from_cache(existing, document_link_id, client_id)
+            cached_resp = await self._build_response_from_cache(existing, document_link_id, client_id)
+            if cached_resp:
+                return cached_resp
         
         # Fetch
         filename, content = await self.doc_client.fetch_document(document_link_id)
+
+        # Log Parent Zip Record
+        parent_record = KycDocumentUnzip(
+            client_id=client_id,
+            document_link_id=document_link_id,
+            document_name=filename,
+            file_type="zip",
+            parent_doc_link_id=None,
+            document_path="DOCUMENTUM_FETCHED",
+            is_extracted="Y",
+            ver_num=settings.VER_NUM
+        )
+        self.db.add(parent_record)
+        self.db.commit()
         
         # Save temp
         temp_file_path = self.temp_dir / f"{uuid.uuid4()}_{filename}"
@@ -311,7 +354,9 @@ class UnzipWorkflowService:
                 tree_struct=self.zip_processor.build_simple_tree(root_node),
                 files_unzipped=contents_map
             )
-            return {document_link_id: unzip_detail}
+            response = {document_link_id: unzip_detail}
+            await self._cache_response(response, document_link_id, client_id)
+            return response
             
         finally:
             if temp_file_path.exists():
@@ -322,10 +367,15 @@ class UnzipWorkflowService:
     async def process_document_unzip_optimized(self, document_link_id: str, client_id: str) -> Dict[str, UnzipDetail]:
         """Entry point for existing document (Optimized)."""
         # Check cache
-        stmt = select(KycDocumentUnzip).where(KycDocumentUnzip.document_link_id == document_link_id)
+        stmt = select(KycDocumentUnzip).where(
+            KycDocumentUnzip.document_link_id == document_link_id,
+            KycDocumentUnzip.client_id == client_id
+        ).order_by(KycDocumentUnzip.create_dt.desc())
         existing = self.db.execute(stmt).scalars().all()
         if settings.UNZIP_ENABLE_CACHE and existing:
-            return await self._build_response_from_cache(existing, document_link_id, client_id)
+            cached_resp = await self._build_response_from_cache(existing, document_link_id, client_id)
+            if cached_resp:
+                return cached_resp
             
         # Fetch
         filename, content = await self.doc_client.fetch_document(document_link_id)
@@ -387,7 +437,9 @@ class UnzipWorkflowService:
                 tree_struct=self.zip_processor.build_simple_tree(root_node),
                 files_unzipped=contents_map
             )
-            return {document_link_id: unzip_detail}
+            response = {document_link_id: unzip_detail}
+            await self._cache_response(response, document_link_id, client_id)
+            return response
             
         finally:
             if temp_file_path.exists():
@@ -398,13 +450,32 @@ class UnzipWorkflowService:
     async def process_document_unzip_parallel(self, document_link_id: str, client_id: str) -> Dict[str, UnzipDetail]:
         """Parallel Unzip with File Handler."""
         # Check cache
-        stmt = select(KycDocumentUnzip).where(KycDocumentUnzip.document_link_id == document_link_id)
+        stmt = select(KycDocumentUnzip).where(
+            KycDocumentUnzip.document_link_id == document_link_id,
+            KycDocumentUnzip.client_id == client_id
+        ).order_by(KycDocumentUnzip.create_dt.desc())
         existing = self.db.execute(stmt).scalars().all()
         if settings.UNZIP_ENABLE_CACHE and existing:
-            return await self._build_response_from_cache(existing, document_link_id, client_id)
+            cached_resp = await self._build_response_from_cache(existing, document_link_id, client_id)
+            if cached_resp:
+                return cached_resp
 
         # Fetch
         filename, content = await self.doc_client.fetch_document(document_link_id)
+
+        # Log Parent Zip Record
+        parent_record = KycDocumentUnzip(
+            client_id=client_id,
+            document_link_id=document_link_id,
+            document_name=filename,
+            file_type="zip",
+            parent_doc_link_id=None,
+            document_path="DOCUMENTUM_FETCHED",
+            is_extracted="Y",
+            ver_num=settings.VER_NUM
+        )
+        self.db.add(parent_record)
+        self.db.commit()
         
         temp_file_path = self.temp_dir / f"{uuid.uuid4()}_{filename}"
         async with aiofiles.open(temp_file_path, 'wb') as f:
@@ -489,7 +560,9 @@ class UnzipWorkflowService:
                 files_unzipped=files_unzipped_map
             )
             
-            return {document_link_id: unzip_detail}
+            response = {document_link_id: unzip_detail}
+            await self._cache_response(response, document_link_id, client_id)
+            return response
             
         finally:
             if temp_file_path.exists():

@@ -14,10 +14,24 @@ export DB_POOL_RECYCLE=${DB_POOL_RECYCLE:-"3600"}
 export DB_THICK_MODE=${DB_THICK_MODE:-"false"}
 
 # App Settings
+export APP_NAME=${APP_NAME:-"Unzip Service"}
+export APP_VERSION=${APP_VERSION:-"1.0.0"}
+export APP_REGION=${APP_REGION:-"nam"}
+export DEBUG_MODE=${DEBUG_MODE:-"false"}
+export DEV_MODE=${DEV_MODE:-"false"}
+export VER_NUM=${VER_NUM:-"8"}
+export PVC_DIR=${PVC_DIR:-"./unzip-pvc-data"}
 export SERVER_PORT=${SERVER_PORT:-"8080"}
 export UNZIP_UPLOAD_THREADS=${UNZIP_UPLOAD_THREADS:-"10"}
-export UNZIP_MAX_WORKERS=${UNZIP_MAX_WORKERS:-"1"}
-export UNZIP_ENABLE_CACHE=${UNZIP_ENABLE_CACHE:-"false"}
+export UNZIP_MAX_WORKERS=${UNZIP_MAX_WORKERS:-"4"}
+export UNZIP_ENABLE_CACHE=${UNZIP_ENABLE_CACHE:-"true"}
+
+# S3 Settings
+export S3_BUCKET_NAME=${S3_BUCKET_NAME:-"unzip-documents"}
+export S3_HOST=${S3_HOST:-"http://s3-server:9000"}
+export S3_ACCESS_KEY=${S3_ACCESS_KEY:-"unzip_user"}
+export S3_KEY_PREFIX=${S3_KEY_PREFIX:-"UNZIP"}
+# S3_SECRET_KEY is handled in set_secrets.sh
 
 # Gunicorn Settings
 export WORKERS=${WORKERS:-"2"}
