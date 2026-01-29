@@ -555,7 +555,7 @@ class UnzipWorkflowService:
                 client_id=client_id,
                 file_name=filename,
                 zipped_size=str(root_node.size),
-                unzipped_size=str(total_unzipped_size),
+                unzipped_size=str(total_size[0]),
                 tree_struct=self.zip_processor.build_simple_tree(root_node),
                 files_unzipped=files_unzipped_map
             )
