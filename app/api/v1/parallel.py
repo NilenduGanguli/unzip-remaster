@@ -1,3 +1,9 @@
+"""
+Parallel API Routes (V1).
+Provides endpoints for parallel processing utilizing the File Handler Service.
+- /unzip_upload_doc_parallel: Direct upload and parallel processing via external service.
+- /unzip_upload_save_doc_parallel: Fetch from Documentum and parallel processing.
+"""
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from typing import Dict
 from app.services.v1.unzip_files import UnzipWorkflowService, get_workflow_service

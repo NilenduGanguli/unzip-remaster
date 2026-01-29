@@ -1,3 +1,9 @@
+"""
+Pydantic Models for Unzip Service.
+Defines the data structures used for API responses and internal data passing.
+- UnzipDetail: The main response structure
+- ZipNode: Represents a file or folder in the zip structure
+"""
 # from app_process.database import Base
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
@@ -6,9 +12,9 @@ from typing import Optional, Dict, Any, List
 # --- Pydantic Models ---
 
 class UnzippedFileDetail(BaseModel):
-    file_name: str
-    document_link_id: str
-    file_size: str
+    file_name: str = Field(..., alias="file_name")
+    document_link_id: str = Field(..., alias="file_id")
+    file_size: str = Field(..., alias="file_size")
 
     class Config:
         populate_by_name = True
@@ -31,7 +37,7 @@ class ZipNode(BaseModel):
     }
 
 class UnzipDetail(BaseModel):
-    document_link_id: str = Field(..., alias="document_link_id")
+    document_link_id: str = Field(..., alias="doc_id")
     client_id: str = Field(..., alias="client_id")
     file_name: str = Field(..., alias="file_name")
     zipped_size: str = Field(..., alias="zipped_size")

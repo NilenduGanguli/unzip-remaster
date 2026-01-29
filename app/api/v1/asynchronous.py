@@ -1,3 +1,9 @@
+"""
+Asynchronous API Routes (V2).
+Provides optimized asynchronous endpoints using asyncio and thread/process pools.
+- /unzip_upload_doc: Direct upload with concurrent upstream uploads.
+- /unzip_upload_save_doc: Fetch from Documentum with concurrent upstream uploads.
+"""
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from typing import Dict
 from app.services.v1.unzip_files import UnzipWorkflowService, get_workflow_service

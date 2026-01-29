@@ -1,3 +1,8 @@
+"""
+Zip Processing Utility.
+Handles the extraction of zip files using a ProcessPoolExecutor to avoid blocking the main event loop.
+Supports recursive unzipping and structure building.
+"""
 import asyncio
 import os
 import uuid

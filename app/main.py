@@ -1,3 +1,7 @@
+"""
+Main Application Entry Point.
+Initializes FastAPI app, database connections, and registers routes.
+"""
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 import os

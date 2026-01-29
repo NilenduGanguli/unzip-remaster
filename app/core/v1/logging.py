@@ -1,3 +1,8 @@
+"""
+Logging Configuration.
+Sets up the standard python logging module and provides an asynchronous logger wrapper
+to prevent blocking the main event loop during high-volume logging.
+"""
 import logging
 import asyncio
 from functools import partial

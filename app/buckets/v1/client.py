@@ -1,3 +1,8 @@
+"""
+S3 Bucket Client.
+Wrapper around boto3 for interacting with S3-compatible object storage.
+Used for caching JSON responses to avoid re-processing.
+"""
 import boto3
 import json
 import asyncio

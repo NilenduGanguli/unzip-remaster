@@ -1,3 +1,8 @@
+"""
+Database Engine Configuration.
+Initializes the SQLAlchemy engine and session factory for Oracle DB.
+Configures connection pooling and handling of the Oracle driver.
+"""
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase
 import cx_Oracle

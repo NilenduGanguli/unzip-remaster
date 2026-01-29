@@ -1,3 +1,8 @@
+"""
+Application Configuration.
+Loads environment variables and settings using Pydantic BaseSettings.
+Centralizes configuration for Database, Documentum, S3, and General App settings.
+"""
 from pydantic_settings import BaseSettings
 import os
 import logging

@@ -1,3 +1,9 @@
+"""
+Synchronous API Routes (V1).
+Provides endpoints for synchronous/serial processing of zip files.
+- /unzip_upload_doc: Direct upload and serial processing.
+- /unzip_upload_save_doc: Fetch from Documentum and serial processing.
+"""
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from typing import Dict
 from app.services.v1.unzip_files import UnzipWorkflowService, get_workflow_service

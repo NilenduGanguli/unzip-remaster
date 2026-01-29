@@ -1,3 +1,8 @@
+"""
+Upload Manager Service.
+Handles the upload of extracted files to Documentum.
+Supports both sequential (recursive) and concurrent upload strategies.
+"""
 import asyncio
 from pathlib import Path
 from typing import Dict, List

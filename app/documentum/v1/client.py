@@ -1,3 +1,8 @@
+"""
+Documentum Client.
+Async HTTP client for interacting with the external Documentum service.
+Handles document fetching and uploading.
+"""
 import httpx
 from app.core.v1.config import DocumentumSettings
 from app.core.v1.logging import get_logger

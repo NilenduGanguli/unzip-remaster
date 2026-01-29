@@ -1,4 +1,12 @@
 
+"""
+Unzip Workflow Service.
+Orchestrates the zip file processing workflow including:
+- Fetching documents from Documentum
+- Unzipping files (CPU-intensive task offloaded to process pool)
+- Uploading extracted files back to Documentum
+- Managing Database records and S3 caching
+"""
 import asyncio
 import os
 import uuid

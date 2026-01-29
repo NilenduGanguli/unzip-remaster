@@ -1,3 +1,8 @@
+"""
+Database Schema Definition.
+Defines the SQLAlchemy ORM models for the application.
+- KycDocumentUnzip: The main table for storing unzip logs and document metadata.
+"""
 from sqlalchemy import Column, String, Boolean, Date, DateTime, Text, Integer, Float
 from pydantic import BaseModel, Field
 from datetime import date, time, datetime
